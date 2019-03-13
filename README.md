@@ -3,6 +3,8 @@ Visualizing relative importance analyses to supplement linear regression
 
 ## WORK IN PROGRESS
 
+![alt text](https://github.com/AJThurston/relaimpoviz/blob/master/quantiles.png)
+
 ##To DO:
 - Get Datalables to position in the middle of their predictor bars
 - Build function to write dominance analysis results for any number of regression models based on user input
