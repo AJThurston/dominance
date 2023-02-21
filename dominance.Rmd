@@ -1,0 +1,302 @@
+---
+title: "Dominance"
+output: github_document
+---
+
+```{r datagen, eval=FALSE, include=FALSE}
+library(faux)
+library(foreign)
+library(tidyverse)
+library(domir)
+library(apaTables)
+library(lm.beta)
+
+setwd()
+df <- read.spss("C://Users//AJ Thurston//Desktop//SA Thesis Data.sav", to.data.frame = TRUE)
+
+df$
+
+df_sa <- df %>%
+  select("CASEID",
+    "Sex",
+         "Ethnicity",
+         "Race",
+         "Age",
+         "PositTenure",
+         "ICAR_Total_Score",
+         "Openness",
+         "Conscientiousness",
+         "Extraversion",
+         "Agreeableness",
+         "EmotionalStab",
+         "SATotal",
+         "SPTotal")
+
+colnames(df_sa) <-  
+  c("id",
+    "sex",
+    "eth",
+    "race",
+    "age",
+    "tenure",
+    "gma",
+    "o",
+    "c",
+    "e",
+    "a",
+    "n",
+    "sa",
+    "sp")
+
+df_sa <-  filter(df_sa, race != "0")
+# df_sa$race <- factor(df_sa$race, levels=c('White', 'Black or African American', 'Asian', 'Multiracial', 'Native Hawaiian or Other Pacific Islander', "American Indian or Alaskan Native"))
+# df_sa$race <- relevel(df_sa$race, ref = "White") 
+# df_sa$eth <- relevel(df_sa$eth, ref = "Not-Hispanic") 
+
+
+write.csv(df_sa, "dominance.csv", row.names = FALSE)
+dom <- read.csv("dominance.csv")
+
+mod1 <- lm(data = dom,  sp ~ sex + eth + race + age + tenure + gma + o + c + e + a + n)
+mod2 <- lm(data = dom,  sp ~ sex + eth + race + age + tenure + gma + o + c + e + a + n + sa)
+
+mod1 %>%
+  lm.beta(.) %>%
+  summary(.)
+
+mod2 %>%
+  lm.beta(.) %>%
+  summary(.)
+
+
+dom1 <- domin(sp ~ sex + eth + race + age + tenure + gma + o + c + e + a + n, 
+      lm, 
+      list(summary, "r.squared"), 
+      data = dominance)
+
+
+apa.reg.table(mod1,mod2,filename="sa_incremental.doc")
+
+library(psych)
+mod1 <- setCor(data = dominance,  sp ~ sex + eth + race + age + tenure + gma + o + c + e + a + n)
+mod2 <- setCor(data = dominance,  sp ~ sex + eth + race + age + tenure + gma + o + c + e + a + n + sa)
+mod1
+
+```
+
+Visualization to demonstrate the relative importance of predictors from
+a regression model using general dominance weights.  
+[\@AJThurston](https://twitter.com/AJThurston)
+
+```{r setup, warning = FALSE, message = FALSE}
+library(xlsx)
+library(ggplot2)
+library(relaimpo)
+library(formattable)
+```
+
+## Introduction
+
+In academic contexts, explanation of a regression models typically focus on the variance accounted for by the model and the beta weights associated with each predictor.  However, interpretation of beta weights is difficult for lay audiences, and multicolinearity (i.e., highly correlated predictors) can lead to misleading results (e.g., bouncing betas).  Further, non-technical audiences tend to give comparably less weight to the relationships between predictors and criteria.  Instead, they tend to give more weight the rank order of the most important predictors in order to prioritize direct attention or resources.
+
+Relative importance analyses are tools for variance decomposition.  They address multicolinearity of predictors, offer non-technical audiences with a ranking of the most important predictors and their relative contribution to variance explained, and offer an intuitive visual aid for describing incremental validity.  There are two main relative importance analyses: relative weights analysis (Johnson, 2000; Johnson & Lebreton, 2004; Tonidandel & LeBreton, 2011) and dominance analysis (Budescu, 1993, Luchmann, 2014). In general, relative weights analysis used to be preferred as it was less computationally intensive; however, dominance analysis is preferred as it is mathematically accurate, and should especially be preferred in high-stakes testing settings or when statistically significant differences between the relative contribution of predictors is the focus of the test.
+
+## Setup and Libraries
+
+```{r setup, message = FALSE, warning = FALSE}
+library(summarytools)
+library(formattable)
+library(tidyverse)
+library(ggplot2)
+library(scales)
+library(Cairo)
+```
+
+## Data Import
+
+In this example, these simulated data have a correlation of r = .5 between predicted and actual criterion scores (N = 1000, M = 50, SD = 10). First, let's import the example data and quickly orient ourselves to it. There are three variables in the file:
+
+1.  id: This is just an identifier or a unique participant ID
+2.  actu: this is the acutal criterion score (e.g., actual job performance)
+3.  pred: this is the predicted criterion score (e.g., predicted job perfromance from an employment test)
+
+```{r data, message = FALSE, warning = FALSE}
+# df <- read.csv("https://raw.githubusercontent.com/AJThurston/quantiles/master/expectancy.csv")
+df <- read.csv("expectancy.csv")
+head(df)
+
+df %>%
+  select(actu,pred) %>%
+  descr(.)
+```
+
+## Parameters
+
+Next, we'll need to set some parameters for the analysis and the graphics of the plot itself. The first parameter is simply how many quantiles we want to display, we could include only four (i.e., quartiles), this example uses five (i.e., quintiles), but I would recommend probably no more than 10 (i.e., deciles).
+
+Additionally, you'll need to include the text size for the plot, the upper and lower limits for the y-axis, and the axis titles. For the limits, I typically recommend using the actual criterion mean minus two SD for your lower limit and two SD above the mean for the upper limit. Some could argue it should be 0 to 100 if that is the range of possible scores. I would argue my limits cover over 95% of the possible scores. Whatever limits you choose, ensure you have some justification.
+
+```{r parameters, message = FALSE, warning = FALSE}
+quants  <-  5                              #Number of quantiles
+txt.siz <- 12                              #Size for all text in the plot
+y.ll    <- 30                              #Y-axis lower limit          
+y.ul    <- 70                              #Y-axis upper limit
+x.title <- "Predicted Criterion Quantiles" #X-axis title
+y.title <- "Mean Actual Criterion Score"   #Y-axis title
+```
+
+## Calculating Quantiles
+
+Based on the number of quantiles indicated in the parameter above, now we actually need to calculate the thresholds between each of the quantiles then assign each predicted score to a quantile group. The first bit of code here calculates the quantiles with the `quantile` function. 
+
+```{r quantiles1, message = FALSE, warning = FALSE}
+quantiles <- quantile(df$pred, probs = seq(0,1,1/quants))
+quantiles
+```
+
+Next, we take the the predicted values, compare them to the quantiles ranges, and store the quantile assignment as a new variable using the `cut` function.
+```{r quantiles2, message = FALSE, warning = FALSE}
+df$quant <- df$pred %>%
+  cut(., breaks = quantiles, include.lowest=TRUE) %>%
+  as.numeric()
+
+head(df)
+```
+
+Finally, the average actual criterion score for each quantile group is shown.  These are the values used in the expectancy chart.
+```{r quantiles3, message = FALSE, warning = FALSE}
+df %>%
+  group_by(quant) %>%
+  summarize(m = mean(actu))
+```
+
+In another approach, we may want to use a logical grouping of scores to make the decision.  For example:
+
+* Group 1: Scores from  0 to  39
+* Group 2: Scores from 40 to  49
+* Group 3: Scores from 50 to  59
+* Group 4: Scores from 60 to  69
+* Group 5: Scores from 70 to 100
+
+It's best to work with the client in advance to set expectations and understand what model will best meet their needs.
+
+## Expectancy Plot
+
+In many cases it is easier to simply take these values and display them in, for example, a PowerPoint plot. However, if you have to automate this tast for multiple criteria, the code below may be useful for this purpose.
+
+```{r expectancy, message = FALSE, warning = FALSE}
+p <- ggplot(df)
+p <- p + scale_y_continuous(name=y.title, limits = c(y.ll,y.ul), oob = rescale_none)
+p <- p + scale_x_continuous(name=x.title, oob = rescale_none)
+p <- p + geom_bar(aes(x = quant, y = actu), 
+                  position = "dodge", 
+                  stat = "summary", 
+                  fun = "mean",
+                  fill = '#336666',
+                  width = .5)
+p <- p + geom_text(aes(x = quant, y = actu, label = paste0(round(..y..,0),"%")), 
+                   stat = "summary", 
+                   fun = "mean",
+                   vjust = -1)
+p <- p + theme(text = element_text(size = txt.siz),
+               panel.background = element_rect(fill = "white", color = "black"),
+               panel.grid = element_blank(),
+               axis.text.y = element_text(color = 'black'),
+               axis.text.x = element_text(color = 'black'))
+p
+```
+
+## Export
+
+These are some options for exporting your expectancy chart and the data for use in other software programs.
+
+```{r export, message=FALSE, warning=FALSE}
+ggsave("expectancy.png", 
+       plot = p, 
+       scale = 1, 
+       width = 6.5, 
+       height = 4, 
+       units = "in",
+       dpi = 300,
+       type = "cairo-png")
+
+write.csv(data, "expectancy_appended.csv")
+```
+
+## References
+Budescu, D. V. (1993). Dominance analysis: A new approach to the problem of relative importance of predictors in multiple regression. Psychological Bulletin, 114, 542-551.
+
+Johnson, J. W. (2000). A heuristic method for estimating the relative weight of predictor variables in multiple regression. Multivariate Behavioral Research, 35(1), 1-19. doi:10.1207/S15327906MBR3501_1
+
+Johnson, J. W., & LeBreton, J. M. (2004). History and use of relative importance indices in organizational research. Organizational Research Methods, 7(3), 238-257. doi:10.1177/1094428104266510
+
+Luchman, J. N. (2014). Relative Importance Analysis With Multicategory Dependent Variables: An Extension and Review of Best Practices. Organizational Research Methods, 17(4), 452-471. https://doi.org/10.1177/1094428114544509
+
+Tonidandel, S., & LeBreton, J. M. (2011). Relative importance analysis: A useful supplement to regression analysis. Journal of Business and Psychology, 26(1), 1-9. doi:10.1007/s10869-010-9204-3
+
+
+
+data = read.xlsx("data.relimpo.xlsx", sheetName = "Sheet1")
+
+names = c("Y1","X1","X2","X3","X4","X5") nvars = length(names) preds =
+c("X1","X2","X3","X4","X5") model1 = c("Y1 \~ X1 + X2 + X3") model2 =
+c("Y1 \~ X1 + X2 + X3 + X4") model3 = c("Y1 \~ X1 + X2 + X3 + X4 + X5")
+models = c(model1, model2, model3) colnames(data)
+
+lm1 = lm(model1, data = data) lm_dominance1 \<- calc.relimp(lm1, type =
+"lmg") lm1dom = lm_dominance1\$lmg lm1domcs = cumsum(lm1dom) lm1domm =
+c(1,1,1,1,1)
+
+lm2 = lm(model2, data = data) lm_dominance2 \<- calc.relimp(lm2, type =
+"lmg") lm2dom = lm_dominance2\$lmg lm2domcs = cumsum(lm2dom) lm2domm =
+c(2,2,2,2,2)
+
+lm3 = lm(model3, data = data) lm_dominance3 \<- calc.relimp(lm3, type =
+"lmg") lm3dom = lm_dominance3\$lmg lm3domcs = cumsum(lm3dom) lm3domm =
+c(3,3,3,3,3)
+
+n \<- max(length(lm1dom), length(lm2dom), length(lm3dom)) length(lm1dom)
+\<- n\
+length(lm2dom) \<- n length(lm3dom) \<- n length(lm1domcs) \<- n\
+length(lm2domcs) \<- n length(lm3domcs) \<- n
+
+domres1 = cbind(lm1domm,preds,lm1dom,lm1domcs) domres2 =
+cbind(lm2domm,preds,lm2dom,lm2domcs) domres3 =
+cbind(lm3domm,preds,lm3dom,lm3domcs) domres =
+rbind(domres1,domres2,domres3) rownames(domres) = NULL colnames(domres)
+= c("Model","Predictor","Importance","Cumul") domres =
+as.data.frame(domres) domres$Importance = as.numeric(domres$Importance)
+domres$Cumul = as.numeric(domres$Cumul)
+
+rm(counts,p,preds,n,lm1,lm2,lm3,lm1dom,lm2dom,lm3dom,lm_dominance1,lm_dominance2,lm_dominance3)
+
+imp.plot = ggplot(data = domres, aes(x = Model, y = Importance, fill =
+Predictor) ) + geom_bar(stat="identity", position =
+position_stack(reverse = TRUE), width = .25, color = "black" ) +
+geom_text(data=domres,aes(x=Model,y=Cumul,label=paste0(Predictor, "\n",
+round(Importance, digits = 2))),vjust=0) + scale_x\_discrete(limits =
+rev(levels(domres\$Model))) + scale_y\_continuous(limits = c(0,50),
+labels = scales::percent) + scale_fill_manual(values = USFcols) +
+coord_flip() +
+
+theme(text = element_text(size = 20), panel.background =
+element_rect(fill = "white", color = "black"), panel.grid =
+element_blank(), axis.text.y = element_text(color = 'black'),
+axis.text.x = element_text(color = 'black'), axis.title.y =
+element_blank(), panel.grid.major.x = element_line(color="black"),
+legend.position = "top" ) imp.plot
+
+# Write plot and data to working directory -----------------------
+
+ggsave("relimpo.png", plot = plot1, scale = 1, width = 6.5, height = 4,
+units = "in", dpi = 300)
+
+write.xlsx(data, "data.relimpo.xlsx") setwd("C:/Owner/AJ
+Thurston/Desktop")
+
+domresm = melt(data=domres, id.vars = Model) help(melt)
+colnames(domresm) = c("Predictor","Model", "Importance")
+
+for (i in models) { assign(paste(names(i),"lm",sep = "."), i) }
+
+names(models) models
