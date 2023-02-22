@@ -124,21 +124,41 @@ dom2 <- domin(data = df,
               formula = sp ~ sex + eth + race + age + tenure + gma + o + c + e + a + n + sa, 
               reg = lm, 
               fitstat = list(summary, "r.squared"))
+```
 
+Now would be the time to migrate these values into a PowerPoint if you're doing a one-off.
+
+```{r results, eval = FALSE, message = FALSE, warning = FALSE}
 res <- list(dom1$General_Dominance,dom2$General_Dominance) %>%
   do.call(bind_rows, .) %>%
-  as.data.frame()
-
-res <- res %>%
+  as.data.frame() %>%
   mutate(tenure = 0) %>%
   mutate(personality = rowSums(.[c("o","c","e","a","n")])) %>%
   mutate(demographic = rowSums(.[c("sex","eth","race","age","tenure")])) %>%
   mutate(block = row_number()) %>%
-  subset(select = c(block,personality,demographic,sa,gma) ) %>%
   gather(var, val, -block)
-res
 
-res$var <- factor(mydf$task, levels = c("up", "down", "left", "right", "front", "back"))
+res$var
+
+res$total <- res$var %>%
+  recode_factor(.,
+                "sex"    = "part",
+                "eth"    = "part",  
+                "race"   = "part",  
+                "age"    = "part",   
+                "tenure" = "part",
+                "gma"    = "unchanged",
+                "o"      = "part",
+                "c"      = "part", 
+                "e"      = "part",
+                "a"      = "part",
+                "n"      = "part",
+                "sa"     = "unchanged",
+                "personality" = "total",
+                "demographic" = "total")
+
+res$var <- res$var %>%
+  factor(., levels = c("sa", "personality", "gma", "demographic"))
 
 ```
 
@@ -155,16 +175,16 @@ p <- p + geom_bar(aes(x = val, y = as.factor(block), fill = var),
                   stat = "identity", 
                   width = .5)
 p
-p <- p + geom_text(aes(x = quant, y = actu, label = paste0(round(..y..,0),"%")), 
-                   stat = "summary", 
-                   fun = "mean",
-                   vjust = -1)
-p <- p + theme(text = element_text(size = txt.siz),
-               panel.background = element_rect(fill = "white", color = "black"),
-               panel.grid = element_blank(),
-               axis.text.y = element_text(color = 'black'),
-               axis.text.x = element_text(color = 'black'))
-p
+# p <- p + geom_text(aes(x = quant, y = actu, label = paste0(round(..y..,0),"%")), 
+#                    stat = "summary", 
+#                    fun = "mean",
+#                    vjust = -1)
+# p <- p + theme(text = element_text(size = txt.siz),
+#                panel.background = element_rect(fill = "white", color = "black"),
+#                panel.grid = element_blank(),
+#                axis.text.y = element_text(color = 'black'),
+#                axis.text.x = element_text(color = 'black'))
+# p
 ```
 
 ## Export
