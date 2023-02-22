@@ -143,7 +143,7 @@ y.title <- "Regression block"   #Y-axis title
 ## Dominance Plot
 
 Dominance plot notes and explanation here
-```{r domplot, eval = FALSE, message = FALSE, warning = FALSE}
+```{r domplot, message=FALSE, warning=FALSE}
 p <- ggplot(res, aes(x = val, y = block, color = var, fill = var, label = lbl))
 p <- p + geom_bar(stat = "identity", width = .25)
 p <- p + geom_text_repel(data = res %>% filter(block == "1"), 
@@ -185,9 +185,8 @@ p <- p + theme(legend.position = "none",
                panel.grid = element_blank(),
                axis.text.y = element_text(color = 'black'),
                axis.text.x = element_text(color = 'black'))
-p
 ```
-![](https://raw.githubusercontent.com/AJThurston/dominance/master/img/dominance.PNG)
+![](https://raw.githubusercontent.com/AJThurston/dominance/master/img/dominance.png)
 
 ## Export
 
