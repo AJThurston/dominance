@@ -27,26 +27,26 @@ Relative importance analyses are tools for variance decomposition. They address 
 
 First, let's import the example data and quickly orient ourselves to it. There are three variables in the file:
 
-1.  id: This is just an identifier or a unique participant ID (integer)
-2.  sex: Participant sex (character)
-3.  eth: Participant ethnicity (character)
-4.  race: Participant race (character)
-5.  age: Participant age in years (integer)
-6.  tenure: Participant tenure in months (numeric)
-7.  gma: Participant cognitive ability/general mental ability score (integer)
-8.  o: Participant personality, openness scale total score (integer)
-9.  c: Participant personality, conscientiousness scale total score (integer)
-10. e: Participant personality, extraversion scale total score (integer)
-11. a: Participant personality, agreeableness scale total score (integer)
-12. n: Participant personality, emotional Stability scale total score (integer)
-13. sa: Participant situation awareness test total score (integer)
-14. sp: Participant safety performance total score (integer)
+1.  **id**: This is just an identifier or a unique participant ID (integer)
+2.  **sex**: Participant sex (character)
+3.  **eth**: Participant ethnicity (character)
+4.  **race**: Participant race (character)
+5.  **age**: Participant age in years (integer)
+6.  **tenure**: Participant tenure in months (numeric)
+7.  **gma**: Participant cognitive ability/general mental ability score (integer)
+8.  **o**: Participant personality, openness scale total score (integer)
+9.  **c**: Participant personality, conscientiousness scale total score (integer)
+10. **e**: Participant personality, extraversion scale total score (integer)
+11. **a**: Participant personality, agreeableness scale total score (integer)
+12. **n**: Participant personality, emotional Stability scale total score (integer)
+13. **sa**: Participant situation awareness test total score (integer)
+14. **sp**: Participant safety performance total score (integer)
 
 Note: all items are self-reported, but cognitive ability was measured with an ability test. Variables 2 through 13 are predictors, safety performance (sp) is the criterion.
 
 ```{r data, message = FALSE, warning = FALSE}
 # df <- read.csv("https://raw.githubusercontent.com/AJThurston/dominance/master/data/dominance.csv")
-df <- read.csv("dominance.csv")
+df <- read.csv("data/dominance.csv")
 head(df)
 ```
 
@@ -78,31 +78,37 @@ Brief description of dominance analysis here
 
 Need to give them fair warning about the 2\^p-1 thing
 
-```{r da, eval = FALSE, message = FALSE, warning = FALSE}
-dom1 <- domin(data = df,
-              formula = sp ~ sex + eth + race + age + tenure + gma + o + c + e + a + n, 
-              reg = lm, 
-              fitstat = list(summary, "r.squared"))
+Given the compute time, if you are following along on a lower power machine and just want to import the dominance analysis results, use the `readRDS` lines to import those data.
 
-dom2 <- domin(data = df,
-              formula = sp ~ sex + eth + race + age + tenure + gma + o + c + e + a + n + sa, 
-              reg = lm, 
-              fitstat = list(summary, "r.squared"))
+```{r da, message = FALSE, warning = FALSE}
+# dom1 <- domin(data = df,
+#               formula = sp ~ sex + eth + race + age + tenure + gma + o + c + e + a + n, 
+#               reg = lm, 
+#               fitstat = list(summary, "r.squared"))
+# 
+# dom2 <- domin(data = df,
+#               formula = sp ~ sex + eth + race + age + tenure + gma + o + c + e + a + n + sa, 
+#               reg = lm, 
+#               fitstat = list(summary, "r.squared"))
+
+dom1 <- readRDS("data/dom1.rds")
+dom2 <- readRDS("data/dom2.rds")
 ```
 
 Now would be the time to migrate these values into a PowerPoint if you're doing a one-off.
 
-```{r results, eval = FALSE, message = FALSE, warning = FALSE}
+## Results Formatting  
+Tidy format and collapsing groups of predictors
+
+```{r results, message = FALSE, warning = FALSE}
 res <- list(dom1$General_Dominance,dom2$General_Dominance) %>%
   do.call(bind_rows, .) %>%
   as.data.frame() %>%
-  mutate(tenure = 0) %>%
+  mutate(tenure = 0) %>% # cannot have negative dominance weights
   mutate(personality = rowSums(.[c("o","c","e","a","n")])) %>%
   mutate(demographic = rowSums(.[c("sex","eth","race","age","tenure")])) %>%
   mutate(block = row_number()) %>%
   gather(var, val, -block)
-
-res$var
 
 res$total <- res$var %>%
   recode_factor(.,
@@ -121,34 +127,52 @@ res$total <- res$var %>%
                 "personality" = "total",
                 "demographic" = "total")
 
+# Setting factor order
 res$var <- res$var %>%
-  factor(., levels = c("sa", "personality", "gma", "demographic"))
+  factor(., levels = c("sa","personality","o","c","e","a","n","gma","demographic","sex","eth","race","age","tenure"))
 
 ```
 
 Description of the data analysis here and perhaps a bit on tidy format data
 
+## Plot Parameters
+```{r params, message = FALSE, warning = FALSE}
+txt.siz <- 12                              #Size for all text in the plot
+x.ll    <- 0                              #Y-axis lower limit          
+x.ul    <- .6                              #Y-axis upper limit
+p.title <- "Incremental validity of Situation Awareness in predicting Safety Performance" # Plot title
+s.title <- NA
+l.title <- "Predictors" # Legend Title
+x.title <- "Percentage of R2 accounted for by predictor" #X-axis title
+y.title <- "Regression block"   #Y-axis title
+```
+
 ## Dominance Plot
 
 Dominance plot notes and explanation here
 ```{r domplot, message = FALSE, warning = FALSE}
-p <- ggplot(data = res)
-# p <- p + scale_y_continuous(name=y.title, limits = c(y.ll,y.ul), oob = rescale_none)
-# p <- p + scale_x_continuous(name=x.title, oob = rescale_none)
+p <- ggplot(res %>% filter(total != "total"))
+p <- p + scale_y_discrete(limits=rev)
+p <- p + scale_x_continuous(limits = c(x.ll,x.ul), expand = c(0,0))
 p <- p + geom_bar(aes(x = val, y = as.factor(block), fill = var), 
                   stat = "identity", 
                   width = .5)
-p
 # p <- p + geom_text(aes(x = quant, y = actu, label = paste0(round(..y..,0),"%")), 
 #                    stat = "summary", 
 #                    fun = "mean",
 #                    vjust = -1)
-# p <- p + theme(text = element_text(size = txt.siz),
-#                panel.background = element_rect(fill = "white", color = "black"),
-#                panel.grid = element_blank(),
-#                axis.text.y = element_text(color = 'black'),
-#                axis.text.x = element_text(color = 'black'))
-# p
+p <- p + labs(
+  title = p.title,
+  subtitle = s.title,
+  x = x.title,
+  y = y.title,
+  fill = l.title
+)
+p <- p + theme(panel.background = element_rect(fill = "white", color = "black"),
+               panel.grid = element_blank(),
+               axis.text.y = element_text(color = 'black'),
+               axis.text.x = element_text(color = 'black'))
+p
 ```
 
 ## Export
@@ -157,36 +181,25 @@ These are some options for exporting your expectancy chart and the data
 for use in other software programs.
 
 ```{r export, message=FALSE, warning=FALSE}
-ggsave("expectancy.png", 
-       plot = p, 
-       scale = 1, 
-       width = 6.5, 
-       height = 4, 
-       units = "in",
-       dpi = 300,
-       type = "cairo-png")
-
-write.csv(data, "expectancy_appended.csv")
+# ggsave("expectancy.png", 
+#        plot = p, 
+#        scale = 1, 
+#        width = 6.5, 
+#        height = 4, 
+#        units = "in",
+#        dpi = 300,
+#        type = "cairo-png")
+# 
+# write.csv(data, "expectancy_appended.csv")
 ```
 
-Limitations of Dominance Analysis
+## Limitations
 
-> First, DA cannot account for sampling and measurement errors, as is
-> true of other analyses (Braun et al., 2019; Tonidandel & LeBreton,
-> 2011). Second, although DA was invented to deal with correlations
-> among PVs, it cannot rectify multicollinearity when multicollinearity
-> is caused by two or more variables measuring the same construct (i.e.,
-> construct redundancy; Stadler et al., 2017). Third, DA is not a
-> replacement for multiple regression analysis for selecting the best
-> set of PVs for the regression formula. That is, DA is an indispensable
-> supplement to multiple regression analysis for determining predictor
-> importance, but not the other way around. (Mizumoto, 2022)
+> First, DA cannot account for sampling and measurement errors, as is true of other analyses (Braun et al., 2019; Tonidandel & LeBreton, 2011). Second, although DA was invented to deal with correlations among PVs, it cannot rectify multicollinearity when multicollinearity is caused by two or more variables measuring the same construct (i.e., construct redundancy; Stadler et al., 2017). Third, DA is not a replacement for multiple regression analysis for selecting the best set of PVs for the regression formula. That is, DA is an indispensable supplement to multiple regression analysis for determining predictor importance, but not the other way around. (Mizumoto, 2022)
 
 ## References
 
-Azen, R., & Traxel, N. (2009). Using Dominance Analysis to Determine
-Predictor Importance in Logistic Regression. Journal of Educational and
-Behavioral Statistics, 34(3), 319--347.
+Azen, R., & Traxel, N. (2009). Using Dominance Analysis to Determine Predictor Importance in Logistic Regression. Journal of Educational and Behavioral Statistics, 34(3), 319--347.
 <https://doi.org/10.3102/1076998609332754>
 
 Budescu, D. V. (1993). Dominance analysis: A new approach to the problem
