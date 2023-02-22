@@ -1,9 +1,6 @@
 ---
 title: "Dominance"
 output: github_document
-editor_options: 
-  markdown: 
-    wrap: 72
 ---
 
 Visualization to demonstrate the relative importance of predictors from
