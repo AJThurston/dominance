@@ -19,37 +19,13 @@ library(domir)
 
 ## Introduction
 
-In academic contexts, explanation of a regression models typically focus
-on the variance accounted for by the model and the beta weights
-associated with each predictor. However, interpretation of beta weights
-is difficult for lay audiences, and multicolinearity (i.e., highly
-correlated predictors) can lead to misleading results (e.g., bouncing
-betas). Further, non-technical audiences tend to give comparably less
-weight to the relationships between predictors and criteria. Instead,
-they tend to give more weight the rank order of the most important
-predictors in order to prioritize direct attention or resources.
+In academic contexts, explanation of a regression models typically focus on the variance accounted for by the model and the beta weights associated with each predictor. However, interpretation of beta weights is difficult for lay audiences, and multicolinearity (i.e., highly correlated predictors) can lead to misleading results (e.g., bouncing betas). Further, non-technical audiences tend to give comparably less weight to the relationships between predictors and criteria. Instead, they tend to give more weight the rank order of the most important predictors in order to prioritize direct attention or resources.
 
-Relative importance analyses are tools for variance decomposition. They
-address multicolinearity of predictors, offer non-technical audiences
-with a ranking of the most important predictors and their relative
-contribution to variance explained, and offer an intuitive visual aid
-for describing incremental validity. There are two main relative
-importance analyses: relative weights analysis (Johnson, 2000; Johnson &
-Lebreton, 2004; Tonidandel & LeBreton, 2011) and dominance analysis
-(Budescu, 1993; Azen & Traxel, 2009; Luchmann, 2014). In general,
-relative weights analysis used to be preferred as it was less
-computationally intensive; however, dominance analysis is preferred as
-it is mathematically accurate, and should especially be preferred in
-high-stakes testing settings or when statistically significant
-differences between the relative contribution of predictors is the focus
-of the test.
+Relative importance analyses are tools for variance decomposition. They address multicolinearity of predictors, offer non-technical audiences with a ranking of the most important predictors and their relative contribution to variance explained, and offer an intuitive visual aid for describing incremental validity. There are two main relative importance analyses: relative weights analysis (Johnson, 2000; Johnson & Lebreton, 2004; Tonidandel & LeBreton, 2011) and dominance analysis (Budescu, 1993; Azen & Traxel, 2009; Luchmann, 2014). In general, relative weights analysis used to be preferred as it was less computationally intensive; however, dominance analysis is preferred as it is mathematically accurate, and should especially be preferred in high-stakes testing settings or when statistically significant differences between the relative contribution of predictors is the focus of the test.
 
 ## Data Import
 
-In this example, these simulated data have a correlation of r = .5
-between predicted and actual criterion scores (N = 1000, M = 50, SD =
-10). First, let's import the example data and quickly orient ourselves
-to it. There are three variables in the file:
+First, let's import the example data and quickly orient ourselves to it. There are three variables in the file:
 
 1.  id: This is just an identifier or a unique participant ID (integer)
 2.  sex: Participant sex (character)
@@ -57,22 +33,16 @@ to it. There are three variables in the file:
 4.  race: Participant race (character)
 5.  age: Participant age in years (integer)
 6.  tenure: Participant tenure in months (numeric)
-7.  gma: Participant cognitive ability/general mental ability score
-    (integer)
+7.  gma: Participant cognitive ability/general mental ability score (integer)
 8.  o: Participant personality, openness scale total score (integer)
-9.  c: Participant personality, conscientiousness scale total score
-    (integer)
+9.  c: Participant personality, conscientiousness scale total score (integer)
 10. e: Participant personality, extraversion scale total score (integer)
-11. a: Participant personality, agreeableness scale total score
-    (integer)
-12. n: Participant personality, emotional Stability scale total score
-    (integer)
+11. a: Participant personality, agreeableness scale total score (integer)
+12. n: Participant personality, emotional Stability scale total score (integer)
 13. sa: Participant situation awareness test total score (integer)
 14. sp: Participant safety performance total score (integer)
 
-Note: all items are self-reported, but cognitive ability was measured
-with an ability test. Variables 2 through 13 are predictors, safety
-performance (sp) is the criterion.
+Note: all items are self-reported, but cognitive ability was measured with an ability test. Variables 2 through 13 are predictors, safety performance (sp) is the criterion.
 
 ```{r data, message = FALSE, warning = FALSE}
 # df <- read.csv("https://raw.githubusercontent.com/AJThurston/dominance/master/data/dominance.csv")
@@ -82,10 +52,7 @@ head(df)
 
 ## Regression Analysis (Baseline)
 
-There are plenty of tools to conduct a linear regression in R. In this
-example, we're demonstrating incremental validity with two blocks
-demonstrating the incremental validity of situation awareness over
-demographic, cognitive, and personality predicting safety performance.
+There are plenty of tools to conduct a linear regression in R. In this example, we're demonstrating incremental validity with two blocks demonstrating the incremental validity of situation awareness over demographic, cognitive, and personality predicting safety performance.
 
 ```{r regression, eval = FALSE, message = FALSE, warning = FALSE}
 mod1 <- lm(data = df, 
