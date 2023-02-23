@@ -166,7 +166,11 @@ res$var_fullname <- res$var %>%
                 "gma" = "Cognitive Ability",
                 "demographic" = "Demographics")
 
-res$lbl <- paste(res$var_fullname,"\n", scales::percent(round(res$val, digits = 3)))
+res$lbl <- paste(res$var_fullname,"\n", percent(round(res$val, digits = 3)), sep = "")
+
+totals <- res %>%
+  aggregate(val ~ block, ., sum)
+totals$lbl <- paste("Total:", percent(round(totals$val, digits = 3)))
 ```
 
 Description of the data analysis here and perhaps a bit on tidy format
@@ -190,19 +194,25 @@ y.title <- "Regression block"   #Y-axis title
 Dominance plot notes and explanation here
 
 ``` r
-p <- ggplot(res, aes(x = val, y = block, color = var, fill = var, label = lbl))
-p <- p + geom_bar(stat = "identity", width = .25)
-p <- p + geom_text_repel(data = res %>% filter(block == "1"), 
+p <- ggplot(res)
+p <- p + geom_bar(aes(x = val, y = block, color = var, fill = var, label = lbl),
+  stat = "identity", width = .25)
+p <- p + geom_text_repel(data = res %>% filter(block == "1"),
+                         aes(x = val, y = block, color = var, label = lbl),
                          ylim = 2.25,
                          nudge_x = .065,
                          direction = "both",
                          force = 1)
-p <- p + geom_text_repel(data = res %>% filter(block == "2"), 
+p <- p + geom_text_repel(data = res %>% filter(block == "2"),
+                         aes(x = val, y = block, color = var, label = lbl),
                          ylim = 1.5,
                          direction = "x",
                          force = 2)
+p <- p + geom_text(totals, mapping = aes(x = val, y = block, label = lbl),
+                   hjust = 0,
+                   nudge_x = .01)
 p <- p + scale_y_discrete(limits = rev)
-p <- p + scale_x_continuous(limits = c(x.ll,x.ul), expand = c(0,0))
+p <- p + scale_x_continuous(limits = c(x.ll,x.ul), expand = c(0,0),labels = label_percent())
 
 p <- p + scale_fill_manual(
   labels = c('sa' = 'Situation Awareness',
