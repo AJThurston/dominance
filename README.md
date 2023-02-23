@@ -241,6 +241,7 @@ p <- p + theme(legend.position = "none",
                panel.grid = element_blank(),
                axis.text.y = element_text(color = 'black'),
                axis.text.x = element_text(color = 'black'))
+# p
 ```
 
 ![](https://raw.githubusercontent.com/AJThurston/dominance/master/img/dominance.png)
