@@ -50,7 +50,7 @@ df <- read.csv("data/dominance.csv")
 head(df)
 ```
 
-## Regression Analysis (Baseline)
+## Regression Analysis
 
 There are plenty of tools to conduct a linear regression in R. In this example, we're demonstrating incremental validity with two blocks demonstrating the incremental validity of situation awareness over demographic, cognitive, and personality predicting safety performance.
 
