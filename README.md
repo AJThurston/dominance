@@ -87,7 +87,7 @@ head(df)
     ## 5  5   Male Not-Hispanic White  47     16  12 39 12 23 10 12 41 17
     ## 6  6   Male Not-Hispanic White  44     15  15 38 32 19 35 39 42 21
 
-## Regression Analysis (Baseline)
+## Regression Analysis
 
 There are plenty of tools to conduct a linear regression in R. In this
 example, we’re demonstrating incremental validity with two blocks
@@ -110,13 +110,36 @@ mod2 %>%
   summary(.)
 ```
 
+I manually gathered the information relevant to demonstrating the
+incremental validity of situation awareness over other predictors in
+accounting for safety performance variability. This is still an
+essential component leading to dominance analysis; it can only be
+supplemented by dominance analysis, but it should not be replaced by it.
+My recommendation is to add this to the appendix of your technical
+report, but to brief the dominance analysis up front.
+
 ![](https://raw.githubusercontent.com/AJThurston/dominance/master/img/regression_table.PNG)
 
 ## Dominance Analysis
 
-Brief description of dominance analysis here
+Briefly, dominance analysis uses all possible regressions from a set of
+predictors to evaluate the unique marginal contribution of an individual
+predictor. Suppose I have three predictors X<sub>1</sub>, X<sub>2</sub>,
+and X<sub>3</sub> and a criterion variable Y<sub>1</sub>. All possible
+combinations of predictors make for seven possible regressions:
 
-Need to give them fair warning about the 2<sup>p-1</sup> thing
+- Y<sub>1</sub> \~ X<sub>1</sub> + X<sub>2</sub> + X<sub>3</sub>
+- Y<sub>1</sub> \~ X<sub>1</sub> + X<sub>2</sub>
+- Y<sub>1</sub> \~ X<sub>1</sub>
+- Y<sub>1</sub> \~ X<sub>2</sub> + X<sub>3</sub>
+- Y<sub>1</sub> \~ X<sub>2</sub>
+- Y<sub>1</sub> \~ X<sub>1</sub> + X<sub>3</sub>
+- Y<sub>1</sub> \~ X<sub>3</sub>
+
+In dominance analysis the number of possible regressions increases
+exponentially as the number of predictors increases requiring the
+calculation of 2<sup>*p*</sup>-1 possible models where *p* is the number
+of predictor variables.
 
 Given the compute time, if you are following along on a lower power
 machine and just want to import the dominance analysis results, use the
